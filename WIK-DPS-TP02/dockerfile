@@ -1,0 +1,19 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install --omit=dev
+
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm install typescript --save-dev && npx tsc && npm uninstall typescript
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+EXPOSE 3000
+
+ENV PING_LISTEN_PORT=3000
+
+CMD ["node", "dist/server.js"]

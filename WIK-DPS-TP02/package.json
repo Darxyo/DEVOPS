@@ -1,0 +1,16 @@
+{
+  "name": "ping-api",
+  "version": "1.0.0",
+  "description": "Simple HTTP API returning request headers on GET /ping",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "npx ts-node src/server.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@types/node": "^20.12.12",
+    "ts-node": "^10.9.2"
+  }
+}
