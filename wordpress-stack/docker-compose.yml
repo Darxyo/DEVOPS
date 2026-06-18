@@ -101,7 +101,7 @@ services:
         define('WP_REDIS_PORT', 6379);
         define('WP_CACHE', true);
     volumes:
-      - wordpress_data:/var/www/html      # même volume partagé → même contenu
+      - wordpress_data:/var/www/html      # même volume partagé  même contenu
       - ./wordpress/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
     networks:
       - backend
