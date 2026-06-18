@@ -52,7 +52,7 @@ services:
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress
       WORDPRESS_TABLE_PREFIX: wp_
-      # Clés de sécurité (à remplacer par de vraies valeurs en prod)
+      
       WORDPRESS_AUTH_KEY:         "changeme-auth-key-1"
       WORDPRESS_SECURE_AUTH_KEY:  "changeme-secure-auth-key-1"
       WORDPRESS_LOGGED_IN_KEY:    "changeme-logged-in-key-1"

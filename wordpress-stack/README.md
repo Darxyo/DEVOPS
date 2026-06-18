@@ -42,6 +42,23 @@ Internet → nginx:80 → wordpress_1:9000
                        redis:6379
 ```
 
+## Activer le cache Redis
+```
+Redis est configuré au niveau Docker mais nécessite un plugin côté WordPress pour être utilisé activement.
+
+
+Aller sur http://localhost/wp-admin
+Extensions > Ajouter une extension
+Rechercher Redis Object Cache, installer et activer
+Aller dans Réglages > Redis et cliquer sur "Enable Object Cache"
+
+
+L'état doit afficher Connecté et Redis : Joignable. Le plugin se connecte automatiquement au conteneur redis sur le port 6379.
+
+
+Les données du plugin sont sauvegardées dans le volume wordpress_data. Un docker compose down sans -v les conserve.
+```
+
 ## Vérifications
 
 **Conteneurs actifs**
