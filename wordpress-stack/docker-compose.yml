@@ -1,0 +1,134 @@
+services:
+
+  # ─── BASE DE DONNÉES ───────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "wordpress", "-pwordpress"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── CACHE REDIS ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── WORDPRESS (réplique 1) ─────────────────────────────────────────
+  wordpress_1:
+    image: wordpress:6.5-php8.2-fpm-alpine
+    container_name: wordpress_1
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_TABLE_PREFIX: wp_
+      # Clés de sécurité (à remplacer par de vraies valeurs en prod)
+      WORDPRESS_AUTH_KEY:         "changeme-auth-key-1"
+      WORDPRESS_SECURE_AUTH_KEY:  "changeme-secure-auth-key-1"
+      WORDPRESS_LOGGED_IN_KEY:    "changeme-logged-in-key-1"
+      WORDPRESS_NONCE_KEY:        "changeme-nonce-key-1"
+      WORDPRESS_AUTH_SALT:        "changeme-auth-salt-1"
+      WORDPRESS_SECURE_AUTH_SALT: "changeme-secure-auth-salt-1"
+      WORDPRESS_LOGGED_IN_SALT:   "changeme-logged-in-salt-1"
+      WORDPRESS_NONCE_SALT:       "changeme-nonce-salt-1"
+      # Redis Object Cache
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_REDIS_HOST', 'redis');
+        define('WP_REDIS_PORT', 6379);
+        define('WP_CACHE', true);
+    volumes:
+      - wordpress_data:/var/www/html
+      - ./wordpress/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
+    networks:
+      - backend
+
+  # ─── WORDPRESS (réplique 2) ─────────────────────────────────────────
+  wordpress_2:
+    image: wordpress:6.5-php8.2-fpm-alpine
+    container_name: wordpress_2
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_TABLE_PREFIX: wp_
+      WORDPRESS_AUTH_KEY:         "changeme-auth-key-1"
+      WORDPRESS_SECURE_AUTH_KEY:  "changeme-secure-auth-key-1"
+      WORDPRESS_LOGGED_IN_KEY:    "changeme-logged-in-key-1"
+      WORDPRESS_NONCE_KEY:        "changeme-nonce-key-1"
+      WORDPRESS_AUTH_SALT:        "changeme-auth-salt-1"
+      WORDPRESS_SECURE_AUTH_SALT: "changeme-secure-auth-salt-1"
+      WORDPRESS_LOGGED_IN_SALT:   "changeme-logged-in-salt-1"
+      WORDPRESS_NONCE_SALT:       "changeme-nonce-salt-1"
+      WORDPRESS_CONFIG_EXTRA: |
+        define('WP_REDIS_HOST', 'redis');
+        define('WP_REDIS_PORT', 6379);
+        define('WP_CACHE', true);
+    volumes:
+      - wordpress_data:/var/www/html      # même volume partagé → même contenu
+      - ./wordpress/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
+    networks:
+      - backend
+
+  # ─── REVERSE PROXY NGINX (seul service exposé) ──────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"         # seul port ouvert sur l'hôte
+    depends_on:
+      - wordpress_1
+      - wordpress_2
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - wordpress_data:/var/www/html:ro   # pour servir les fichiers statiques
+    networks:
+      - backend
+
+# ─── VOLUMES ─────────────────────────────────────────────────────────
+volumes:
+  mysql_data:
+  redis_data:
+  wordpress_data:
+
+# ─── RÉSEAU ──────────────────────────────────────────────────────────
+networks:
+  backend:
+    driver: bridge
